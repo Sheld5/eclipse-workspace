@@ -1,29 +1,32 @@
 package com.jamescho.game.state;
 
+import java.util.ArrayList;
+
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 
-import com.jamescho.framework.util.RNG;
 import com.jamescho.game.main.GameMain;
 import com.jamescho.game.main.Resources;
 import com.jamescho.game.model.Block;
 import com.jamescho.game.model.Cloud;
 import com.jamescho.game.model.Player;
 
-public class PlayState extends State {
-	private static final int BLOCK_WIDTH = 20;
-	private static final int BLOCK_HEIGHT = 50;
+public class PlayStateHard extends State {
 	private static final int PLAYER_WIDTH = 66;
 	private static final int PLAYER_HEIGHT = 92;
 	private static final int INITIAL_BLOCK_SPEED = -200;
-	private static final int BLOCK_CLOUD_SPEED_RATIO = 13;
+	private static final int BLOCK_SPEED_INCREASE = -10;
+	private static final int BLOCK_SPEED_MAXIMUM = -280;
+	private static final int BLOCK_CLOUD_SPEED_RATIO = 7;
+	private static final int SPEED_INCREASE_PERIOD = 500;
 	private static final int INITIAL_PLAYER_X = 160;
+	private static final double SPEED_MULTIPLIER = 1.5;
 	
 	private Player player;
-	private Block[] blocks;
+	private ArrayList<Block> blocks;
 	private Cloud cloud1, cloud2;
 	
 	private Font scoreFont;
@@ -33,33 +36,29 @@ public class PlayState extends State {
 
 	@Override
 	public void init() {
+		System.out.println("Entered PlayState");
 		player = new Player(INITIAL_PLAYER_X , GameMain.GAME_HEIGHT - 45 - PLAYER_HEIGHT, PLAYER_WIDTH, PLAYER_HEIGHT);
-		blocks = new Block[5];
+		blocks = new ArrayList<Block>();
 		cloud1 = new Cloud(100);
 		cloud2 = new Cloud(600);
 		scoreFont = new Font("SansSerif", Font.BOLD, 25);
 		
 		for (int i = 0; i < 5; i++) {
-			int y;
-			if (RNG.getRandomInt(Block.getChanceForUpper() - 1) == 0) {
-				y = Block.getUpperY();
-			} else {
-				y = Block.getLowerY();
-			}
-			Block b = new Block(i * 200, y, BLOCK_WIDTH, BLOCK_HEIGHT);
-			blocks[i] = b;
+			Block b = new Block(i * 200);
+			blocks.add(b);
 		}
 		
 	}
 
 	@Override
 	public void update(float delta) {
+		delta *= SPEED_MULTIPLIER;
 		if (!player.isAlive()) {
-			setCurrentState(new GameOverState(playerScore / 100));
+			setCurrentState(new GameOverState(playerScore / 10));
 		}
 		playerScore += 1;
-		if (playerScore % 500 == 0 && blockSpeed > -280) {
-			blockSpeed -= 10;
+		if (playerScore % SPEED_INCREASE_PERIOD == 0 && blockSpeed > BLOCK_SPEED_MAXIMUM) {
+			blockSpeed += BLOCK_SPEED_INCREASE;
 			cloudSpeed = blockSpeed / BLOCK_CLOUD_SPEED_RATIO;
 		}
 		updateObjects(delta);
@@ -67,7 +66,7 @@ public class PlayState extends State {
 	}
 	
 	private void updateObjects(float delta) {
-		player.update(delta);
+		player.update(delta, INITIAL_PLAYER_X);
 		updateBlocks(delta);
 		cloud1.update(delta, cloudSpeed);
 		cloud2.update(delta, cloudSpeed);
@@ -89,7 +88,7 @@ public class PlayState extends State {
 	@Override
 	public void render(Graphics g) {
 		renderSky(g);
-		renderSun(g);
+	//	renderSun(g);
 		renderClouds(g);
 		renderBlocks(g);
 		renderPlayer(g);
@@ -100,12 +99,14 @@ public class PlayState extends State {
 	private void renderScore(Graphics g) {
 		g.setFont(scoreFont);
 		g.setColor(Color.GRAY);
-		g.drawString("" + playerScore / 100, 20, 30);
+		g.drawString(playerScore / 10 + "m", 20, 30);
 	}
 	
 	private void renderPlayer(Graphics g) {
 		if (player.isGrounded()) {
-			if (player.isDucked()) {
+			if (player.isPunching()) {
+				g.drawImage(Resources.punch, (int) player.getX(), (int) player.getY(), null);
+			} else if (player.isDucked()) {
 				g.drawImage(Resources.duck, (int) player.getX(), (int) player.getY(), null);
 			} else {
 				Resources.runAnim.render(g, (int) player.getX(), (int) player.getY(), player.getWIdth(), player.getHeight());
@@ -118,7 +119,11 @@ public class PlayState extends State {
 	private void renderBlocks(Graphics g) {
 		for (Block b : blocks) {
 			if (b.isVisible()) {
-				g.drawImage(Resources.block, (int) b.getX(), (int) b.getY(), BLOCK_WIDTH, BLOCK_HEIGHT, null);
+				if (b.isLarge()) {
+					g.drawImage(Resources.blockLarge, (int) b.getX(), (int) b.getY(), Block.getBlockWidth(), Block.getBlockLargeHeight(), null);
+				} else {
+					g.drawImage(Resources.block, (int) b.getX(), (int) b.getY(), Block.getBlockWidth(), Block.getBlockHeight(), null);
+				}
 			}
 		}
 	}
@@ -128,12 +133,14 @@ public class PlayState extends State {
 		g.drawImage(Resources.cloud2, (int) cloud2.getX(), (int) cloud2.getY(), 100, 60, null);
 	}
 	
+	/*
 	private void renderSun(Graphics g) {
 		g.setColor(Color.ORANGE);
 		g.fillOval(715, -85, 170,170);
 		g.setColor(Color.YELLOW);
 		g.fillOval(725, -75, 150, 150);
 	}
+	*/
 	
 	private void renderSky(Graphics g) {
 		g.setColor(Resources.skyBlue);
@@ -153,6 +160,8 @@ public class PlayState extends State {
 			player.jump();
 		} else if (key == KeyEvent.VK_DOWN) {
 			player.duck();
+		} else if (key == KeyEvent.VK_RIGHT) {
+			player.punch();
 		}
 	}
 

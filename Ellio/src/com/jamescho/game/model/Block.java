@@ -4,24 +4,29 @@ import java.awt.Rectangle;
 
 import com.jamescho.framework.util.RNG;
 import com.jamescho.game.main.GameMain;
+import com.jamescho.game.main.Resources;
 
 public class Block {
+	private static final int BLOCK_WIDTH = 20;
+	private static final int BLOCK_HEIGHT = 50;
+	private static final int BLOCK_LARGE_HEIGHT = 75;
 	private static final int UPPER_Y = GameMain.GAME_HEIGHT - 175;
 	private static final int LOWER_Y = GameMain.GAME_HEIGHT - 95;
-	private static final int CHANCE_FOR_UPPER = 3;
-	private static final int PUSHBACK = 30;
+	private static final int MIDDLE_Y = GameMain.GAME_HEIGHT - 145;
+	private static final int CHANCE_FOR_UPPER = 2;
+	private static final int CHANCE_FOR_LARGE = 3;
+	private static final int PUSHBACK = 55;
 	
 	private float x, y;
 	private int width, height;
 	private Rectangle rect;
 	private boolean visible;
+	private boolean isLarge;
 	
-	public Block(float x, float y, int width, int height) {
+	public Block(float x) {
 		this.x = x;
-		this.y = y;
-		this.width = width;
-		this.height = height;
-		rect = new Rectangle((int) x, (int) y, width, height);
+		setSize();
+		width = BLOCK_WIDTH;
 		visible = false;
 	}
 	
@@ -39,17 +44,36 @@ public class Block {
 	
 	public void reset() {
 		visible = true;
-		if (RNG.getRandomInt(CHANCE_FOR_UPPER - 1) == 0) {
-			y = UPPER_Y;
-		} else {
-			y = LOWER_Y;
-		}
+		setSize();
 	x += 1000;
+	}
+	
+	private void setSize() {
+		if (RNG.getRandomInt(CHANCE_FOR_LARGE - 1) == 0) {
+			isLarge = true;
+			y = MIDDLE_Y;
+			height = BLOCK_LARGE_HEIGHT;
+			rect = new Rectangle((int) x, (int) y, width, height);
+		} else {
+			isLarge = false;
+			if (RNG.getRandomInt(CHANCE_FOR_UPPER - 1) == 0) {
+				y = UPPER_Y;
+			} else {
+				y = LOWER_Y;
+			}
+			height = BLOCK_HEIGHT;
+			rect = new Rectangle((int) x, (int) y, width, height);
+		}
 	}
 	
 	public void onCollide(Player p) {
 		visible = false;
-		p.pushBack(PUSHBACK);
+		if (isLarge && p.isPunching()) {
+			Resources.punchThrough.play();
+		} else {
+			Resources.hit.play();
+			p.pushBack(PUSHBACK);
+		}
 	}
 	
 	public float getX() {
@@ -62,6 +86,10 @@ public class Block {
 	
 	public boolean isVisible() {
 		return visible;
+	}
+	
+	public boolean isLarge() {
+		return isLarge;
 	}
 	
 	public Rectangle getRect() {
@@ -78,6 +106,18 @@ public class Block {
 	
 	public static int getChanceForUpper() {
 		return CHANCE_FOR_UPPER;
+	}
+	
+	public static int getBlockWidth() {
+		return BLOCK_WIDTH;
+	}
+	
+	public static int getBlockHeight() {
+		return BLOCK_HEIGHT;
+	}
+	
+	public static int getBlockLargeHeight() {
+		return BLOCK_LARGE_HEIGHT;
 	}
 
 }

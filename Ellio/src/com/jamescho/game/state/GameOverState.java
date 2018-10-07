@@ -7,6 +7,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 
 import com.jamescho.game.main.GameMain;
+import com.jamescho.game.main.Resources;
 
 public class GameOverState extends State {
 	private int playerScore;
@@ -25,8 +26,7 @@ public class GameOverState extends State {
 
 	@Override
 	public void update(float delta) {
-		// TODO Auto-generated method stub
-		
+		Resources.danceAnim.update(delta);
 	}
 
 	@Override
@@ -36,8 +36,10 @@ public class GameOverState extends State {
 		g.setColor(Color.DARK_GRAY);
 		g.setFont(font);
 		g.drawString("GAME OVER", 257, 175);
-		g.drawString("" + playerScore, 385, 250);
-		g.drawString("Press any key.", 240, 350);
+		g.drawString("Distance: " + playerScore + "m", 240, 250);
+		g.drawString("Press Enter", 262, 350);
+		Resources.danceAnim.render(g, 80, 230, 80, 97);
+		Resources.danceAnim.render(g, 650, 230, 80, 97);
 	}
 
 	@Override
@@ -48,7 +50,9 @@ public class GameOverState extends State {
 
 	@Override
 	public void onKeyPress(KeyEvent e) {
-		setCurrentState(new MenuState());
+		if (e.getKeyCode() == KeyEvent.VK_ENTER || e.getKeyCode() == KeyEvent.VK_SPACE) {
+			setCurrentState(new MenuState());
+		}
 		
 	}
 
